@@ -16,9 +16,12 @@ import org.springframework.web.bind.annotation.*;
 
 import javax.persistence.EntityNotFoundException;
 import javax.validation.Valid;
+import javax.validation.constraints.Email;
+import javax.validation.constraints.NotEmpty;
 import javax.validation.constraints.PositiveOrZero;
 import java.util.Collection;
 import java.util.Objects;
+import java.util.Optional;
 
 import static lombok.AccessLevel.PRIVATE;
 import static lombok.AccessLevel.PUBLIC;
@@ -63,21 +66,43 @@ public class ClientController {
                 .orElseThrow(() -> new EntityNotFoundException("Client #" + id));
     }
 
-    @ApiOperation(value = "Deregistration", notes = "Delete client information")
+    @ApiOperation(value = "Deregistration by id", notes = "Delete client information")
     @DeleteMapping("/{id}")
-    public void deleteClient(@PathVariable("id") @PositiveOrZero long clientId) {
+    public void deleteClientById(@PathVariable("id") @PositiveOrZero long clientId) {
         try {
             accounts.findByClientId(clientId).stream()
                     .map(Account::getId)
                     .filter(Objects::nonNull)
                     .forEach(accountId -> {
                         accounts.deleteById(accountId);
-                        log.info("Account deleted #{}", accountId);
-                    });
+                        log.info("Account deleted #{}", accountId); });
             clients.deleteById(clientId);
             log.info("Client deleted #{}", clientId);
         } catch (Exception e) {
             log.error("Client deletion error for client #" + clientId, e);
+            throw e;
+        }
+    }
+
+    @ApiOperation(value = "Deregistration by login", notes = "Delete client information")
+    @DeleteMapping("/login/{clientLogin}")
+    @SuppressWarnings("ConstantConditions") //for NPE that can't be here
+    public void deleteClientByLogin(@PathVariable("clientLogin") @NotEmpty @Email String clientLogin) {
+        log.info("Client deleting with login {}", clientLogin);
+        try {
+            final Client client = clients.findByLogin(clientLogin)
+                    .orElseThrow(() -> new EntityNotFoundException("No client with login " + clientLogin));
+
+            accounts.findByClientId(client.getId()).stream()
+                    .map(Account::getId)
+                    .filter(Objects::nonNull)
+                    .forEach(accountId -> {
+                        accounts.deleteById(accountId);
+                        log.info("Account deleted #{}", accountId); });
+            clients.deleteById(client.getId());
+            log.info("Client deleted #{}", client.getId());
+        } catch (Exception e) {
+            log.error("Client deletion error for client with login " + clientLogin, e);
             throw e;
         }
     }

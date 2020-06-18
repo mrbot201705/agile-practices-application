@@ -4,46 +4,50 @@ features:
 
 ---
 
+spring:
+  profiles.active: prod
+  jpa.properties.hibernate.generate_statistics: true
+
 server:
   port: 8080
-  servlet:
-    context-path: /dbo
-
-spring:
-  profiles:
-    active: prod
+  servlet.context-path: /dbo
+  tomcat:
+    mbeanregistry.enabled: true
+    maxThreads: 100
 
 management:
-  endpoints:
-    web:
-      exposure:
-        include: '*'
-  endpoint:
-    shutdown:
-      enabled: true
+  metrics:
+    enable.all: true
+    web.server.request.autotime.enabled: true
+  endpoints.web.exposure.include: '*'
+  endpoint.shutdown.enabled: true
 
-endpoints:
-  shutdown:
-    enabled: true
+httpPool:
+  maxTotal: 100
+  defaultMaxPerRoute: 10
+  connectTimeout: 5000
+  connectionRequestTimeout: 1000
+  socketTimeout: 65000
+  validateAfterInactivity: 2000
 
 ---
 
 spring:
   profiles: test
-  main:
-    lazy-initialization: true
-  autoconfigure:
-    exclude:
-      - org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
-      - org.springframework.boot.autoconfigure.jdbc.DataSourceTransactionManagerAutoConfiguration
-      - org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration
+  main.lazy-initialization: true
+  autoconfigure.exclude:
+    - org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
+    - org.springframework.boot.autoconfigure.jdbc.DataSourceTransactionManagerAutoConfiguration
+    - org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration
 
 ---
 
 spring:
   profiles: it
-  main:
-    lazy-initialization: true
+  integration.legacyAccountingSystem:
+    baseUrl: "http://localhost:8888/api"
+    accountsEndpoint: "/account"
+  main.lazy-initialization: true
   datasource:
     driverClassName: org.apache.derby.jdbc.EmbeddedDriver
     url: jdbc:derby:memory:dbo-db;create=true
@@ -55,8 +59,7 @@ spring:
       minimumIdle: 1
   jpa:
     show-sql: true
-    hibernate:
-      ddl-auto: validate
+    hibernate.ddl-auto: validate
   liquibase: #https://javadeveloperzone.com/spring-boot/spring-boot-liquibase-example/
     enabled: true
     contexts: prod, qa
@@ -69,6 +72,9 @@ spring:
 
 spring:
   profiles: qa
+  integration.legacyAccountingSystem:
+    baseUrl: "http://localhost:8888/api"
+    accountsEndpoint: "/account"
   datasource:
     driverClassName: org.apache.derby.jdbc.EmbeddedDriver
     url: jdbc:derby:dbo-db;create=true
@@ -81,8 +87,7 @@ spring:
       idleTimeout: 600000
   jpa:
     show-sql: true
-    hibernate:
-      ddl-auto: validate
+    hibernate.ddl-auto: validate
   liquibase:
     enabled: true
     contexts: prod, qa
@@ -97,6 +102,9 @@ spring:
 
 spring:
   profiles: prod
+  integration.legacyAccountingSystem:
+    baseUrl: "http://localhost:8888/api"
+    accountsEndpoint: "/account"
   datasource:
     platform: postgres #In order to run schema-postgres.sql before Liquibase
     driverClassName: org.postgresql.Driver
@@ -109,9 +117,7 @@ spring:
       maximumPoolSize: 10
       minimumIdle: 2
       idleTimeout: 1800000
-  jpa:
-    hibernate:
-      ddl-auto: validate
+  jpa.hibernate.ddl-auto: validate
   liquibase:
     enabled: true
     contexts: prod
